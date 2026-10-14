@@ -1,6 +1,8 @@
 
 import { useState } from 'react'
 import Admin from './pages/Admin.jsx'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Login from './pages/Login.jsx'
 import {
   Search,
   Moon,
@@ -46,6 +48,9 @@ export default function App() {
 if (window.location.pathname === '/admin') {
   return <Admin />
 }
+  if (window.location.pathname === '/login') {
+  return <Login />
+  }
   return (
     <div className={darkMode ? 'app dark' : 'app light'}>
       <header className="topbar">
