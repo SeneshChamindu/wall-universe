@@ -1,8 +1,6 @@
 
 import { useState } from 'react'
-import Admin from './pages/Admin.jsx'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Login from './pages/Login.jsx'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search,
   Moon,
@@ -11,9 +9,15 @@ import {
   Heart,
   Compass,
   UserRound,
-  Download,
-  Menu,
+  ArrowRight,
 } from 'lucide-react'
+
+import Admin from './pages/Admin.jsx'
+import Login from './pages/Login.jsx'
+import Categories from './pages/Categories.jsx'
+import Favorites from './pages/Favorites.jsx'
+import Profile from './pages/Profile.jsx'
+import WallpaperPreview from './pages/WallpaperPreview.jsx'
 import './styles/global.css'
 
 const categories = [
@@ -28,56 +32,82 @@ const categories = [
   '4K',
 ]
 
-export default function App() {
+function HomePage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [darkMode, setDarkMode] = useState(true)
   const [search, setSearch] = useState('')
-  const [activeTab, setActiveTab] = useState('Home')
- 
+  const [searchSubmitted, setSearchSubmitted] = useState(false)
+
+  const activeTab = location.pathname === '/categories'
+    ? 'Categories'
+    : location.pathname === '/favorites'
+      ? 'Favorites'
+      : location.pathname === '/profile'
+        ? 'Profile'
+        : 'Home'
+
   const empty = (
     <div className="empty-state">
       <div className="empty-icon">
         <ImageIcon size={34} />
       </div>
-      <h3>No wallpapers yet</h3>
+      <h3>
+        {searchSubmitted ? 'No wallpapers found' : 'No wallpapers yet'}
+      </h3>
       <p>
-        Your next favourite wallpaper will appear here.
-        Check back soon!
+        {searchSubmitted
+          ? 'Try another search when wallpapers are available.'
+          : 'Your next favourite wallpaper will appear here. Check back soon!'}
       </p>
     </div>
   )
-if (window.location.pathname === '/admin') {
-  return <Admin />
-}
-  if (window.location.pathname === '/login') {
-  return <Login />
+
+  function submitSearch(event) {
+    event.preventDefault()
+    setSearchSubmitted(true)
+    document.getElementById('wallpaper-results')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
   }
+
   return (
     <div className={darkMode ? 'app dark' : 'app light'}>
       <header className="topbar">
-        <a className="brand" href="#home">
+        <a
+          className="brand"
+          href="/"
+          onClick={event => {
+            event.preventDefault()
+            navigate('/')
+            setSearch('')
+            setSearchSubmitted(false)
+          }}
+        >
           <span className="brand-icon">
             <ImageIcon size={22} />
           </span>
           <span>
-             <strong>Wall Universe</strong>
+            <strong>Wall Universe</strong>
           </span>
         </a>
+
         <button
-  onClick={() => window.location.href = '/login'}
-  style={{
-    padding: '10px 20px',
-    borderRadius: '12px',
-    border: '1px solid #10B981',
-    background: '#10B981',
-    color: '#04150D',
-    fontWeight: 700,
-    fontSize: '14px',
-    cursor: 'pointer',
-    transition: '0.2s'
-  }}
->
-  Sign in →
-</button>
+          onClick={() => navigate('/login')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '12px',
+            border: '1px solid #10B981',
+            background: '#10B981',
+            color: '#04150D',
+            fontWeight: 700,
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          Sign in →
+        </button>
 
         <button
           className="icon-button theme-button"
@@ -105,21 +135,20 @@ if (window.location.pathname === '/admin') {
             Always in original quality.
           </p>
 
-          <form
-            className="search-box"
-            onSubmit={(event) => {
-              event.preventDefault()
-              setActiveTab('Search')
-            }}
-          >
+          <form className="search-box" onSubmit={submitSearch}>
             <Search size={21} />
+
             <input
               type="search"
               placeholder="Search wallpapers..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={event => {
+                setSearch(event.target.value)
+                setSearchSubmitted(false)
+              }}
               aria-label="Search wallpapers"
             />
+
             <button type="submit">Search</button>
           </form>
         </section>
@@ -130,7 +159,18 @@ if (window.location.pathname === '/admin') {
               <span className="section-label">EXPLORE</span>
               <h2>Categories</h2>
             </div>
-            <span className="muted">{categories.length} collections</span>
+
+            <button
+              className="muted"
+              onClick={() => navigate('/categories')}
+              style={{
+                background: 'transparent',
+                border: 0,
+                cursor: 'pointer',
+              }}
+            >
+              View all →
+            </button>
           </div>
 
           <div className="category-grid">
@@ -138,10 +178,7 @@ if (window.location.pathname === '/admin') {
               <button
                 key={category}
                 className={`category-card category-${index}`}
-                onClick={() => {
-                  setSearch(category)
-                  setActiveTab('Search')
-                }}
+                onClick={() => navigate('/categories')}
               >
                 <span className="category-number">
                   {String(index + 1).padStart(2, '0')}
@@ -152,14 +189,21 @@ if (window.location.pathname === '/admin') {
           </div>
         </section>
 
-        <section className="section wallpaper-section">
+        <section
+          className="section wallpaper-section"
+          id="wallpaper-results"
+        >
           <div className="section-heading">
             <div>
               <span className="section-label">FRESH FINDS</span>
-              <h2>{activeTab === 'Search' ? 'Search Results' : 'Latest Wallpapers'}</h2>
+              <h2>
+                {searchSubmitted ? 'Search Results' : 'Latest Wallpapers'}
+              </h2>
             </div>
+
             <span className="muted">Original quality</span>
           </div>
+
           {empty}
         </section>
 
@@ -169,8 +213,10 @@ if (window.location.pathname === '/admin') {
               <span className="section-label">COMMUNITY FAVOURITES</span>
               <h2>Trending</h2>
             </div>
+
             <Heart size={20} className="accent-icon" />
           </div>
+
           {empty}
         </section>
       </main>
@@ -183,15 +229,16 @@ if (window.location.pathname === '/admin') {
 
       <nav className="bottom-nav" aria-label="Main navigation">
         {[
-          { name: 'Home', icon: ImageIcon },
-          { name: 'Categories', icon: Compass },
-          { name: 'Favorites', icon: Heart },
-          { name: 'Profile', icon: UserRound },
-        ].map(({ name, icon: Icon }) => (
+          { name: 'Home', icon: ImageIcon, path: '/' },
+          { name: 'Categories', icon: Compass, path: '/categories' },
+          { name: 'Favorites', icon: Heart, path: '/favorites' },
+          { name: 'Profile', icon: UserRound, path: '/profile' },
+        ].map(({ name, icon: Icon, path }) => (
           <button
             key={name}
             className={activeTab === name ? 'nav-item active' : 'nav-item'}
-            onClick={() => setActiveTab(name)}
+            onClick={() => navigate(path)}
+            aria-current={activeTab === name ? 'page' : undefined}
           >
             <Icon size={21} />
             <span>{name}</span>
@@ -201,3 +248,18 @@ if (window.location.pathname === '/admin') {
     </div>
   )
 }
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/admin" element={<Admin />} />
+      <Route path="/categories" element={<Categories />} />
+      <Route path="/favorites" element={<Favorites />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/wallpaper/:id" element={<WallpaperPreview />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+                }
