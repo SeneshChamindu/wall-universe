@@ -62,8 +62,21 @@ if (window.location.pathname === '/admin') {
              <strong>Wall Universe</strong>
           </span>
         </a>
-        <button onClick={() => window.location.href = '/login'}>
-  Sign in
+        <button
+  onClick={() => window.location.href = '/login'}
+  style={{
+    padding: '10px 20px',
+    borderRadius: '12px',
+    border: '1px solid #10B981',
+    background: '#10B981',
+    color: '#04150D',
+    fontWeight: 700,
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: '0.2s'
+  }}
+>
+  Sign in →
 </button>
 
         <button
