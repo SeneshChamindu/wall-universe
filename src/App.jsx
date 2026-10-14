@@ -30,7 +30,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(true)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('Home')
-
+ 
   const empty = (
     <div className="empty-state">
       <div className="empty-icon">
@@ -43,7 +43,9 @@ export default function App() {
       </p>
     </div>
   )
-
+if (window.location.pathname === '/admin') {
+  return <Admin />
+}
   return (
     <div className={darkMode ? 'app dark' : 'app light'}>
       <header className="topbar">
