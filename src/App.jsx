@@ -1,5 +1,6 @@
 
 import { useState } from 'react'
+import Admin from './pages/Admin.jsx'
 import {
   Search,
   Moon,
