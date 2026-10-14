@@ -59,9 +59,12 @@ if (window.location.pathname === '/admin') {
             <ImageIcon size={22} />
           </span>
           <span>
-            Wall <strong>Universe</strong>
+             <strong>Wall Universe</strong>
           </span>
         </a>
+        <button onClick={() => window.location.href = '/login'}>
+  Sign in
+</button>
 
         <button
           className="icon-button theme-button"
