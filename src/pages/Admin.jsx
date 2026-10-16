@@ -1,5 +1,6 @@
 
 import { useState } from 'react'
+import { supabase } from '../lib/supabase'
 import {
   LayoutDashboard,
   Images,
@@ -33,6 +34,116 @@ export default function Admin() {
   const [section, setSection] = useState('Overview')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [search, setSearch] = useState('')
+  
+  const [wallpapers, setWallpapers] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
+  const [category, setCategory] = useState('Nature')
+  const [title, setTitle] = useState('')
+
+  async function loadWallpapers() {
+    if (!supabase) return
+
+    const { data, error } = await supabase
+      .from('wallpapers')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setUploadMessage(error.message)
+      return
+    }
+
+    setWallpapers(data || [])
+  }
+
+  async function handleWallpaperUpload(event) {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+
+    if (!supabase) {
+      setUploadMessage('Supabase connection එක සකස් කර නැහැ.')
+      return
+    }
+
+    setUploading(true)
+    setUploadMessage('')
+
+    let uploaded = 0
+    const errors = []
+
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          errors.push(`${file.name}: Image file එකක් නොවේ.`)
+          continue
+        }
+
+        if (file.size > 15 * 1024 * 1024) {
+          errors.push(`${file.name}: 15 MB ඉක්මවයි.`)
+          continue
+        }
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const path = `${Date.now()}-${crypto.randomUUID()}-${safeName}`
+
+        const { error: storageError } = await supabase.storage
+          .from('wallpapers')
+          .upload(path, file, {
+            contentType: file.type,
+            upsert: false,
+            cacheControl: '3600',
+          })
+
+        if (storageError) {
+          errors.push(`${file.name}: ${storageError.message}`)
+          continue
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('wallpapers')
+          .getPublicUrl(path)
+
+        const image = new Image()
+        const dimensions = await new Promise(resolve => {
+          image.onload = () => resolve(`${image.naturalWidth}x${image.naturalHeight}`)
+          image.onerror = () => resolve('')
+          image.src = URL.createObjectURL(file)
+        })
+        URL.revokeObjectURL(image.src)
+
+        const { error: dbError } = await supabase
+          .from('wallpapers')
+          .insert({
+            title: title.trim() || file.name.replace(/\.[^.]+$/, ''),
+            image_url: urlData.publicUrl,
+            storage_path: path,
+            category,
+            resolution: dimensions || null,
+            file_size: file.size,
+          })
+
+        if (dbError) {
+          errors.push(`${file.name}: Database error: ${dbError.message}`)
+          continue
+        }
+
+        uploaded++
+      }
+
+      await loadWallpapers()
+
+      setUploadMessage(
+        `${uploaded} wallpaper(s) upload වුණා.` +
+        (errors.length ? ` ගැටලු: ${errors.join(' | ')}` : '')
+      )
+    } catch (error) {
+      setUploadMessage(error.message || 'Upload කිරීම අසාර්ථකයි.')
+    } finally {
+      setUploading(false)
+      event.target.value = ''
+    }
+            }
 
   const stats = [
     { label: 'Total Wallpapers', value: '0', icon: Images, note: 'No uploads yet' },
@@ -179,12 +290,43 @@ export default function Admin() {
                   <h3 style={{ margin: 0 }}>Wallpaper library</h3>
                   <p className="wu-muted">Uploaded wallpapers will be listed here.</p>
                 </div>
-                <input className="wu-input" placeholder="Search wallpapers..." value={search} onChange={e => setSearch(e.target.value)} />
-              </div>
-              <input id="wu-upload" type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => {
-                const files = Array.from(e.target.files || [])
-                alert(`${files.length} file(s) selected. Connect Supabase Storage to upload them.`)
-              }} />
+                
+  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '20px 0' }}>
+    <input
+      className="wu-input"
+      placeholder="Wallpaper title (optional)"
+      value={title}
+      onChange={e => setTitle(e.target.value)}
+    />
+
+    <select
+      className="wu-input"
+      value={category}
+      onChange={e => setCategory(e.target.value)}
+    >
+      {['Anime', 'Cars', 'Nature', 'Gaming', 'AMOLED', 'Space', 'Abstract', 'Minimal', '4K'].map(c => (
+        <option key={c} value={c}>{c}</option>
+      ))}
+    </select>
+  </div>
+
+  <input
+    id="wu-upload"
+    type="file"
+    accept="image/*"
+    multiple
+    disabled={uploading}
+    style={{ display: 'none' }}
+    onChange={handleWallpaperUpload}
+  />
+
+  {uploadMessage && (
+    <p className="wu-muted" style={{ overflowWrap: 'anywhere' }}>
+      {uploadMessage}
+    </p>
+  )}
+
+  {uploading && <p className="wu-muted">Uploading wallpapers...</p>}
               <div className="wu-empty">
                 <ImagePlus size={35} color="#34d399" />
                 <h3>No wallpapers uploaded</h3>
